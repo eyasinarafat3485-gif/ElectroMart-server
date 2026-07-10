@@ -34,19 +34,25 @@ const run = async () => {
     const itemCollection = db.collection("items")
 
 
-    // items get
-    app.get('/api/items', async (req, res)=>{
+    // all items get api
+    app.get('/api/items', async (req, res) => {
       const result = await itemCollection.find().toArray();
       res.send(result);
     })
 
-    // items added
-    app.post('/api/items', async (req, res)=>{
-        const items = req.body;
-        const result = await itemCollection.insertOne(items);
-        res.send(result);
+    // items added post api
+    app.post('/api/items', async (req, res) => {
+      const items = req.body;
+      const result = await itemCollection.insertOne(items);
+      res.send(result);
     })
-    
+
+    // home page 4 item er get api
+    app.get("/products", async (req, res) => {
+      const products = await itemCollection.find().limit(4).toArray();
+      res.send(products);
+    });
+
 
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
