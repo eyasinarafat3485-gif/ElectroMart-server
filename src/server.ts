@@ -33,12 +33,20 @@ const run = async () => {
     const db = client.db("ElectroMart");
     const itemCollection = db.collection("items")
 
+
+    // items get
+    app.get('/api/items', async (req, res)=>{
+      const result = await itemCollection.find().toArray();
+      res.send(result);
+    })
+
     // items added
     app.post('/api/items', async (req, res)=>{
         const items = req.body;
         const result = await itemCollection.insertOne(items);
         res.send(result);
     })
+    
 
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
