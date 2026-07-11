@@ -32,8 +32,9 @@ const run = async () => {
     await client.connect();
     const db = client.db("ElectroMart");
     const itemCollection = db.collection("items")
+    const userCollection = db.collection("user")
 
-    
+
     // all items get api (with category filtering logic)
     app.get('/api/items', async (req, res) => {
       const category = req.query.category;
@@ -66,6 +67,21 @@ const run = async () => {
       const result = await itemCollection.findOne({ _id: new ObjectId(id) });
       res.send(result);
     });
+
+    // user role set api
+    app.patch("/api/users/role", async (req, res) => {
+    const { email, role } = req.body;
+
+    const result = await userCollection.updateOne(
+        { email },
+        {
+            $set: {
+                role,
+            },
+        }
+    );
+    res.send(result);
+});
 
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
