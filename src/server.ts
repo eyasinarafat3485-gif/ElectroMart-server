@@ -4,7 +4,7 @@ dns.setServers(["8.8.8.8", "8.8.4.4"]);
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { MongoClient, ServerApiVersion } from "mongodb";
+import { MongoClient, ObjectId, ServerApiVersion } from "mongodb";
 dotenv.config();
 
 const uri = process.env.MONGODB_URI;
@@ -53,6 +53,12 @@ const run = async () => {
       res.send(products);
     });
 
+    // single item get api
+    app.get("/items/:id", async (req, res) => {
+      const { id } = req.params;
+      const result = await itemCollection.findOne({ _id: new ObjectId(id) });
+      res.send(result);
+    });
 
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
