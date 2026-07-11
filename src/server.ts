@@ -33,12 +33,19 @@ const run = async () => {
     const db = client.db("ElectroMart");
     const itemCollection = db.collection("items")
 
-
-    // all items get api
+    
+    // all items get api (with category filtering logic)
     app.get('/api/items', async (req, res) => {
-      const result = await itemCollection.find().toArray();
+      const category = req.query.category;
+      let query = {};
+      if (category) {
+        query = { category: category };
+      }
+
+      const result = await itemCollection.find(query).toArray();
       res.send(result);
-    })
+    });
+
 
     // items added post api
     app.post('/api/items', async (req, res) => {
