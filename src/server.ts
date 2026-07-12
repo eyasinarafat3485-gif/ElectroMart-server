@@ -33,6 +33,7 @@ const run = async () => {
     const db = client.db("ElectroMart");
     const itemCollection = db.collection("items")
     const userCollection = db.collection("user")
+    const orderCollection = db.collection("orderCollection")
 
 
     // all items get api (with category filtering logic)
@@ -70,18 +71,43 @@ const run = async () => {
 
     // user role set api
     app.patch("/api/users/role", async (req, res) => {
-    const { email, role } = req.body;
-
-    const result = await userCollection.updateOne(
+      const { email, role } = req.body;
+      const result = await userCollection.updateOne(
         { email },
         {
-            $set: {
-                role,
-            },
+          $set: {
+            role,
+          },
         }
-    );
-    res.send(result);
-});
+      );
+      res.send(result);
+    });
+
+    // POST API for placing an order
+    app.post("/api/orders", async (req, res) => {
+      const orderData = req.body;
+      const result = await orderCollection.insertOne(orderData);
+
+      res.status(201).json({
+        success: true,
+        message: "Order saved successfully",
+        insertedId: result.insertedId
+      });
+    });
+
+    app.get('/api/orders', async (req, res) => {
+      const userEmail = req.query.email;
+      if (!userEmail) {
+        return res.status(400).json({ message: "User email is required" });
+      }
+
+      const result = await orderCollection.find({ userEmail: userEmail }).toArray();
+      res.status(200).json(result);
+    });
+
+
+
+    
 
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
