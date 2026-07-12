@@ -86,7 +86,14 @@ const run = async () => {
     // POST API for placing an order
     app.post("/api/orders", async (req, res) => {
       const orderData = req.body;
-      const result = await orderCollection.insertOne(orderData);
+
+      const orderWithStatus = {
+        ...orderData,
+        status: orderData.status || "pending",        
+        orderedAt: orderData.orderedAt || new Date().toISOString()
+      };
+
+      const result = await orderCollection.insertOne(orderWithStatus);
 
       res.status(201).json({
         success: true,
@@ -95,19 +102,64 @@ const run = async () => {
       });
     });
 
+    // GET API - Get user's orders
     app.get('/api/orders', async (req, res) => {
       const userEmail = req.query.email;
+
       if (!userEmail) {
         return res.status(400).json({ message: "User email is required" });
       }
 
-      const result = await orderCollection.find({ userEmail: userEmail }).toArray();
+      const result = await orderCollection
+        .find({ userEmail: userEmail })
+        .sort({ orderedAt: -1 })        
+        .toArray();
+
       res.status(200).json(result);
     });
 
+    // get all orders
+    app.get("/orders", async (req, res) => {
+      const orders = await orderCollection
+        .find({})
+        .sort({ orderedAt: -1 })
+        .toArray();
 
+      res.send(orders);
+    });
 
-    
+    // get all orders count
+    app.get("/orders/count", async (req, res) => {
+      const totalOrders = await orderCollection.countDocuments();
+
+      res.send({
+        totalOrders,
+      });
+    });
+
+    // update order status
+    app.patch("/orders/:id", async (req, res) => {
+      const id = req.params.id;
+      const { status } = req.body;   
+      const result = await orderCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { status } }
+      );
+
+      res.send(result);
+    });
+
+    // delete order
+    app.delete("/orders/:id", async (req, res) => {
+      const id = req.params.id;
+
+      const result = await orderCollection.deleteOne({
+        _id: new ObjectId(id),
+      });
+
+      res.send(result);
+    });
+
 
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
