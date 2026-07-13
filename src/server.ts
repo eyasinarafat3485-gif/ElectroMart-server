@@ -5,6 +5,8 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { MongoClient, ObjectId, ServerApiVersion } from "mongodb";
+import { createRemoteJWKSet, jwtVerify } from "jose-cjs";
+import { Request, Response, NextFunction } from "express";
 dotenv.config();
 
 const uri = process.env.MONGODB_URI;
@@ -27,6 +29,38 @@ const client = new MongoClient(uri, {
   },
 });
 
+const JWKS = createRemoteJWKSet(
+  new URL(`${process.env.CLIENT_URL}/api/auth/jwks`)
+)
+
+
+export const verifyToken = async (req: Request, res: Response, next: NextFunction) => {
+  // Express-e req.headers thakbei, optional chaining (?.) er proyojon nei
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  // Header authorization split kora
+  const token = authHeader && authHeader.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  try {
+    const { payload } = await jwtVerify(token, JWKS)
+    console.log(payload);
+    next();
+  } catch (error) {
+    return res.status(403).json({ message: "Forbidden" });
+  }
+
+  console.log(token);
+
+};;
+
 const run = async () => {
   try {
     await client.connect();
@@ -36,8 +70,8 @@ const run = async () => {
     const orderCollection = db.collection("orderCollection")
 
 
-    // all items get api (with category filtering logic)
-    app.get('/api/items', async (req, res) => {
+    // all items get api (with category filtering logic) --- jwt done
+    app.get('/api/items',  async (req, res) => {
       const category = req.query.category;
       let query = {};
       if (category) {
@@ -62,15 +96,15 @@ const run = async () => {
       res.send(products);
     });
 
-    // single item get api
-    app.get("/items/:id", async (req, res) => {
+    // single item details get api--- jwt done
+    app.get("/items/:id", verifyToken, async (req, res) => {
       const { id } = req.params;
       const result = await itemCollection.findOne({ _id: new ObjectId(id) });
       res.send(result);
     });
 
-    // user role set api
-    app.patch("/api/users/role", async (req, res) => {
+    // user role set api----- jwt done
+    app.patch("/api/users/role", verifyToken, async (req, res) => {
       const { email, role } = req.body;
       const result = await userCollection.updateOne(
         { email },
@@ -83,13 +117,13 @@ const run = async () => {
       res.send(result);
     });
 
-    // POST API for placing an order
-    app.post("/api/orders", async (req, res) => {
+    // POST API for placing an order--- jwt done
+    app.post("/api/orders", verifyToken, async (req, res) => {
       const orderData = req.body;
 
       const orderWithStatus = {
         ...orderData,
-        status: orderData.status || "pending",        
+        status: orderData.status || "pending",
         orderedAt: orderData.orderedAt || new Date().toISOString()
       };
 
@@ -102,8 +136,8 @@ const run = async () => {
       });
     });
 
-    // GET API - Get user's orders
-    app.get('/api/orders', async (req, res) => {
+    // GET API - Get user's orders --- jwt done
+    app.get('/api/orders', verifyToken, async (req, res) => {
       const userEmail = req.query.email;
 
       if (!userEmail) {
@@ -112,14 +146,14 @@ const run = async () => {
 
       const result = await orderCollection
         .find({ userEmail: userEmail })
-        .sort({ orderedAt: -1 })        
+        .sort({ orderedAt: -1 })
         .toArray();
 
       res.status(200).json(result);
     });
 
-    // get all orders
-    app.get("/orders", async (req, res) => {
+    // get all orders --- jwt done
+    app.get("/orders", verifyToken, async (req, res) => {
       const orders = await orderCollection
         .find({})
         .sort({ orderedAt: -1 })
@@ -128,8 +162,8 @@ const run = async () => {
       res.send(orders);
     });
 
-    // get all orders count
-    app.get("/orders/count", async (req, res) => {
+    // get all orders count --- jwt done
+    app.get("/orders/count", verifyToken, async (req, res) => {
       const totalOrders = await orderCollection.countDocuments();
 
       res.send({
@@ -137,10 +171,10 @@ const run = async () => {
       });
     });
 
-    // update order status
-    app.patch("/orders/:id", async (req, res) => {
+    // update order status --- jwt done 
+    app.patch("/orders/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
-      const { status } = req.body;   
+      const { status } = req.body;
       const result = await orderCollection.updateOne(
         { _id: new ObjectId(id) },
         { $set: { status } }
@@ -149,8 +183,8 @@ const run = async () => {
       res.send(result);
     });
 
-    // delete order
-    app.delete("/orders/:id", async (req, res) => {
+    // delete order --- jwt done
+    app.delete("/orders/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
 
       const result = await orderCollection.deleteOne({
