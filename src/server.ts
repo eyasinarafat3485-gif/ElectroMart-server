@@ -70,7 +70,7 @@ const run = async () => {
     const userCollection = db.collection("user");
     const orderCollection = db.collection("orderCollection");
 
-    console.log("✅ Connected to MongoDB!");
+    // console.log("✅ Connected to MongoDB!");
 
     // Get all items (with optional category filter)
     app.get("/api/items", async (req: Request, res: Response) => {
