@@ -2,6 +2,7 @@
   "version": 2,
   "functions": {
     "src/server.ts": {
+      "memory": 1024,
       "maxDuration": 10
     }
   },
