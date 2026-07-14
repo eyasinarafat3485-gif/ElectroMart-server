@@ -75,15 +75,6 @@ export const verifyToken = async (
 
 async function run() {
   try {
-    // Connect the client to the server	(optional starting in v4.7)
-    // await client.connect();
-
-// client
-//   .connect()
-//   .then(() => {
-//     console.log("✅ Connected to MongoDB");
-//   })
-//   .catch(console.error);
 
   const db = client.db("ElectroMart");
   const itemCollection = db.collection("items");
