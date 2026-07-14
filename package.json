@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
+    "prebuild": "tsc --noEmit",
     "build": "tsc",
     "start": "node dist/server.js"
   },
@@ -13,7 +14,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "bcrypt": "^6.0.0",
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
@@ -22,12 +23,12 @@
     "mongodb": "^7.5.0"
   },
   "devDependencies": {
-    "@types/bcrypt": "^6.0.0",
+    "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^26.1.1",
+    "@types/node": "^22.10.0",
     "tsx": "^4.23.0",
-    "typescript": "^7.0.2"
+    "typescript": "^5.4.5"
   }
 }
