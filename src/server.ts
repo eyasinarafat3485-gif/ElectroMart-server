@@ -396,10 +396,17 @@ const run = async () => {
   }
 };
 
+
 run().catch(console.dir);
 
-app.listen(port, () => {
-  console.log(`🚀 Server running on http://localhost:${port}`);
+app.get("/", (_req: Request, res: Response) => {
+  res.send("ElectroMart Server is running perfectly on Vercel!");
 });
+
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(port, () => {
+    console.log(`🚀 Server running on http://localhost:${port}`);
+  });
+}
 
 export default app;
