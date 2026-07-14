@@ -540,8 +540,15 @@ export const verifyToken = async (
   }
 };
 
-const run = async () => {
-  await client.connect();
+// const run = async () => {
+//   await client.connect();
+client
+  .connect()
+  .then(() => {
+    console.log("✅ Connected to MongoDB");
+  })
+  .catch(console.error);
+
   const db = client.db("ElectroMart");
   const itemCollection = db.collection("items");
   const userCollection = db.collection("user");
@@ -703,14 +710,10 @@ const run = async () => {
     const result = await orderCollection.deleteOne({ _id: new ObjectId(id) });
     res.send(result);
   });
-};
 
-run().catch(console.dir);
+// };
 
-if (process.env.NODE_ENV !== "production") {
-  app.listen(port, () => {
-    console.log(`🚀 Server running on http://localhost:${port}`);
-  });
-}
+app.listen(port, () => {
+  console.log(`🚀 Server running on port ${port}`);
+});
 
-export default app;
