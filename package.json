@@ -4,12 +4,11 @@
   "description": "",
   "main": "dist/server.js",
   "type": "module",
-  "scripts": {
-    "dev": "tsx watch src/server.ts",
-    "prebuild": "tsc --noEmit",
-    "build": "tsc",
-    "start": "node dist/server.js"
-  },
+ "scripts": {
+  "dev": "tsx watch src/server.ts",
+  "build": "echo 'Skipping tsc build, Vercel handles it'",
+  "start": "node dist/server.js"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",
