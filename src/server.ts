@@ -1,7 +1,7 @@
-import dns from "dns";
-if (dns && typeof dns.setServers === "function") {
-  dns.setServers(["8.8.8.8", "8.8.4.4"]);
-}
+// import dns from "dns";
+// if (dns && typeof dns.setServers === "function") {
+//   dns.setServers(["8.8.8.8", "8.8.4.4"]);
+// }
 
 import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
@@ -52,14 +52,16 @@ export const verifyToken = async (
   const authHeader = req.headers.authorization;
 
   if (!authHeader) {
-    res.status(401).json({ message: "Unauthorized" });
+    console.log("❌ Authorization header missing");
+    res.status(401).json({ message: "Unauthorized: Header missing" });
     return;
   }
 
   const token = authHeader.split(" ")[1];
 
-  if (!token) {
-    res.status(401).json({ message: "Unauthorized" });
+  if (!token || token === "undefined" || token === "null") {
+    console.log("❌ Token is invalid or null string:", token);
+    res.status(401).json({ message: "Unauthorized: Token missing" });
     return;
   }
 
@@ -67,8 +69,14 @@ export const verifyToken = async (
     const { payload } = await jwtVerify(token, JWKS);
     (req as any).user = payload;
     next();
-  } catch (error) {
-    res.status(403).json({ message: "Forbidden" });
+  } catch (error: any) {
+    // এই লগটি আপনাকে লাইভ সার্ভারের (Render/Vercel) logs ট্যাবে আসল কারণ দেখাবে
+    console.error("❌ JWT Verification Failed error details:", error.message || error);
+    
+    res.status(403).json({ 
+      message: "Forbidden: Token validation failed", 
+      details: error.message 
+    });
   }
 };
 
