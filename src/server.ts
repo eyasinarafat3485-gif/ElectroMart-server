@@ -44,29 +44,41 @@ const JWKS = createRemoteJWKSet(
 );
 
 // ====== MIDDLEWARE
-const verifyToken =async (req, res, next) => {
-  const header = req?.headers.authorization;
-  if (!header) {
-    return res.status(401).json({ message: "Unauthorized" });
-  }
-  // console.log(header);
-  const token = header.split(" ")[1];
-  if (!token) {
-    return res.status(401).json({ message: "Unauthorized" });
+export const verifyToken = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    console.log("❌ Authorization header missing");
+    res.status(401).json({ message: "Unauthorized: Header missing" });
+    return;
   }
 
-  // console.log(token);
+  const token = authHeader.split(" ")[1];
+
+  if (!token || token === "undefined" || token === "null") {
+    console.log("❌ Token is invalid or null string:", token);
+    res.status(401).json({ message: "Unauthorized: Token missing" });
+    return;
+  }
 
   try {
-    const { payload } = await jwtVerify(token, JWKS)
-    console.log(payload);
-    next()
+    const { payload } = await jwtVerify(token, JWKS);
+    (req as any).user = payload;
+    next();
+  } catch (error: any) {
+    // এই লগটি আপনাকে লাইভ সার্ভারের (Render/Vercel) logs ট্যাবে আসল কারণ দেখাবে
+    console.error("❌ JWT Verification Failed error details:", error.message || error);
+    
+    res.status(403).json({ 
+      message: "Forbidden: Token validation failed", 
+      details: error.message 
+    });
   }
-  catch {
-    return res.status(403).json({ message: "Forbidden" })
-  }
-
-}
+};
 
 
 async function run() {
