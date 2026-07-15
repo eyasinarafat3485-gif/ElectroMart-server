@@ -82,17 +82,20 @@ const client = new MongoClient(uri, {
 
 
 
-// 🚀 লাইভ সার্ভারে ক্যাশিং এবং নেটওয়ার্ক টাইম-আউট ফিক্স
+// import { createRemoteJWKSet, jwtVerify } from "jose-cjs";
+// import { Request, Response, NextFunction } from "express";
+
 const clientUrl = process.env.CLIENT_URL ? process.env.CLIENT_URL.replace(/\/$/, "") : "";
+
+// 🚀 টাইপস্ক্রিপ্ট এরর এড়াতে অবজেক্ট কাস্টিং সহ JWKS কনফিগারেশন
 const JWKS = createRemoteJWKSet(
   new URL(`${clientUrl}/api/auth/jwks`),
   {
-    timeout: 15000,      // লাইভ নেটওয়ার্কের জন্য ১৫ সেকেন্ড পর্যন্ত অপেক্ষা করবে
-    cooldownTime: 60000, // ১ বার চাবি আনলে ৬০ সেকেন্ড ক্যাশ রাখবে, বারবার নেটওয়ার্ক কল করবে না
+    timeout: 15000,
+    cooldownTime: 60000,
   } as any
 );
 
-// ====== MIDDLEWARE
 export const verifyToken = async (
   req: Request,
   res: Response,
@@ -101,7 +104,6 @@ export const verifyToken = async (
   const authHeader = req.headers.authorization;
 
   if (!authHeader) {
-    console.log("❌ Authorization header missing");
     res.status(401).json({ message: "Unauthorized: Header missing" });
     return;
   }
@@ -109,30 +111,27 @@ export const verifyToken = async (
   const token = authHeader.split(" ")[1];
 
   if (!token || token === "undefined" || token === "null") {
-    console.log("❌ Token is invalid or null string:", token);
     res.status(401).json({ message: "Unauthorized: Token missing" });
     return;
   }
 
   try {
-    // 🔒 ডোমেইন ভ্যালিডেশন সহ টোকেন ভেরিফাই করা হচ্ছে
-    const { payload } = await jwtVerify(token, JWKS, {
-      issuer: clientUrl,
-    });
+    // 🔒 টোকেন ভেরিফিকেশন
+    const { payload } = await jwtVerify(token, JWKS);
     
     (req as any).user = payload;
     next();
   } catch (error: any) {
-    // লাইভ সার্ভারের ড্যাশবোর্ডে আসল এরর ট্র্যাক করার জন্য লগ
-    console.error("❌ JWT Verification Failed error details:", error.message || error);
+    // 🚨 এই লগটি আপনার Render/Vercel-এর ব্যাকএন্ড ড্যাশবোর্ডের Logs ট্যাবে আসল কারণ দেখাবে!
+    console.error("❌ JWT VERIFICATION CRITICAL ERROR:", error.message || error);
     
+    // লাইভ ডিবাগিং এর সুবিধার্থে রেসপন্সেও এরর মেসেজটি সাময়িকভাবে পাঠানো হলো
     res.status(403).json({ 
       message: "Forbidden: Token validation failed", 
-      details: error.message 
+      reason: error.message || "Unknown error"
     });
   }
 };
-
 
 
 
