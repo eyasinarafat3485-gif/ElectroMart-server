@@ -87,13 +87,12 @@ const client = new MongoClient(uri, {
 
 const clientUrl = process.env.CLIENT_URL ? process.env.CLIENT_URL.replace(/\/$/, "") : "";
 
-// 🚀 টাইপস্ক্রিপ্ট এরর এড়াতে অবজেক্ট কাস্টিং সহ JWKS কনফিগারেশন
+// import { Request, Response, NextFunction } from "express";
+// import { createRemoteJWKSet, jwtVerify } from "jose";
+
 const JWKS = createRemoteJWKSet(
-  new URL(`${clientUrl}/api/auth/jwks`),
-  {
-    timeout: 15000,
-    cooldownTime: 60000,
-  } as any
+  new URL("https://electro-mart-sigma.vercel.app/.well-known/jwks.json"),
+  { cooldownDuration: 30000, timeoutDuration: 10000 } // avoid silent hangs
 );
 
 export const verifyToken = async (
@@ -102,33 +101,29 @@ export const verifyToken = async (
   next: NextFunction
 ): Promise<void> => {
   const authHeader = req.headers.authorization;
-
   if (!authHeader) {
     res.status(401).json({ message: "Unauthorized: Header missing" });
     return;
   }
 
   const token = authHeader.split(" ")[1];
-
   if (!token || token === "undefined" || token === "null") {
     res.status(401).json({ message: "Unauthorized: Token missing" });
     return;
   }
 
   try {
-    // 🔒 টোকেন ভেরিফিকেশন
-    const { payload } = await jwtVerify(token, JWKS);
-    
+    const { payload } = await jwtVerify(token, JWKS, {
+      issuer: "https://electro-mart-sigma.vercel.app",
+      audience: "https://electro-mart-sigma.vercel.app",
+    });
     (req as any).user = payload;
     next();
   } catch (error: any) {
-    // 🚨 এই লগটি আপনার Render/Vercel-এর ব্যাকএন্ড ড্যাশবোর্ডের Logs ট্যাবে আসল কারণ দেখাবে!
-    console.error("❌ JWT VERIFICATION CRITICAL ERROR:", error.message || error);
-    
-    // লাইভ ডিবাগিং এর সুবিধার্থে রেসপন্সেও এরর মেসেজটি সাময়িকভাবে পাঠানো হলো
-    res.status(403).json({ 
-      message: "Forbidden: Token validation failed", 
-      reason: error.message || "Unknown error"
+    console.error("❌ JWT Verify Error:", error?.code, error?.message);
+    res.status(403).json({
+      message: "Forbidden: Invalid token",
+      reason: error?.code || error?.message,
     });
   }
 };
