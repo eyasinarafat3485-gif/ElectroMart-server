@@ -39,8 +39,57 @@ const client = new MongoClient(uri, {
   },
 });
 
+// const JWKS = createRemoteJWKSet(
+//   new URL(`${process.env.CLIENT_URL}/api/auth/jwks`)
+// );
+
+// // ====== MIDDLEWARE
+// export const verifyToken = async (
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ): Promise<void> => {
+//   const authHeader = req.headers.authorization;
+
+//   if (!authHeader) {
+//     console.log("❌ Authorization header missing");
+//     res.status(401).json({ message: "Unauthorized: Header missing" });
+//     return;
+//   }
+
+//   const token = authHeader.split(" ")[1];
+
+//   if (!token || token === "undefined" || token === "null") {
+//     console.log("❌ Token is invalid or null string:", token);
+//     res.status(401).json({ message: "Unauthorized: Token missing" });
+//     return;
+//   }
+
+//   try {
+//     const { payload } = await jwtVerify(token, JWKS);
+//     (req as any).user = payload;
+//     next();
+//   } catch (error: any) {
+//     // এই লগটি আপনাকে লাইভ সার্ভারের (Render/Vercel) logs ট্যাবে আসল কারণ দেখাবে
+//     console.error("❌ JWT Verification Failed error details:", error.message || error);
+    
+//     res.status(403).json({ 
+//       message: "Forbidden: Token validation failed", 
+//       details: error.message 
+//     });
+//   }
+// };
+
+
+
+// 🚀 লাইভ সার্ভারে ক্যাশিং এবং নেটওয়ার্ক টাইম-আউট ফিক্স
+const clientUrl = process.env.CLIENT_URL ? process.env.CLIENT_URL.replace(/\/$/, "") : "";
 const JWKS = createRemoteJWKSet(
-  new URL(`${process.env.CLIENT_URL}/api/auth/jwks`)
+  new URL(`${clientUrl}/api/auth/jwks`),
+  {
+    timeout: 15000,      // লাইভ নেটওয়ার্কের জন্য ১৫ সেকেন্ড পর্যন্ত অপেক্ষা করবে
+    cooldownTime: 60000, // ১ বার চাবি আনলে ৬০ সেকেন্ড ক্যাশ রাখবে, বারবার নেটওয়ার্ক কল করবে না
+  } as any
 );
 
 // ====== MIDDLEWARE
@@ -66,11 +115,15 @@ export const verifyToken = async (
   }
 
   try {
-    const { payload } = await jwtVerify(token, JWKS);
+    // 🔒 ডোমেইন ভ্যালিডেশন সহ টোকেন ভেরিফাই করা হচ্ছে
+    const { payload } = await jwtVerify(token, JWKS, {
+      issuer: clientUrl,
+    });
+    
     (req as any).user = payload;
     next();
   } catch (error: any) {
-    // এই লগটি আপনাকে লাইভ সার্ভারের (Render/Vercel) logs ট্যাবে আসল কারণ দেখাবে
+    // লাইভ সার্ভারের ড্যাশবোর্ডে আসল এরর ট্র্যাক করার জন্য লগ
     console.error("❌ JWT Verification Failed error details:", error.message || error);
     
     res.status(403).json({ 
@@ -79,6 +132,25 @@ export const verifyToken = async (
     });
   }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 async function run() {
@@ -161,22 +233,42 @@ async function run() {
     });
   });
 
-  // Get user orders
-  app.get("/api/orders", async (req: Request, res: Response) => {
-    const userEmail = req.query.email as string;
 
-    if (!userEmail) {
-      res.status(400).json({ message: "User email is required" });
-      return;
-    }
 
-    const result = await orderCollection
-      .find({ userEmail })
-      .sort({ orderedAt: -1 })
-      .toArray();
+  // Get user orders (JWT Protected - Simple Version)
+app.get("/api/orders", verifyToken, async (req: Request, res: Response): Promise<void> => {
+  const userEmail = req.query.email as string;
 
-    res.status(200).json(result);
-  });
+  if (!userEmail) {
+    res.status(400).json({ message: "User email is required" });
+    return;
+  }
+
+  // সরাসরি ডাটাবেজ থেকে ডেটা কুয়েরি
+  const result = await orderCollection
+    .find({ userEmail })
+    .sort({ orderedAt: -1 })
+    .toArray();
+
+  res.status(200).json(result);
+});
+
+  // // Get user orders
+  // app.get("/api/orders", async (req: Request, res: Response) => {
+  //   const userEmail = req.query.email as string;
+
+  //   if (!userEmail) {
+  //     res.status(400).json({ message: "User email is required" });
+  //     return;
+  //   }
+
+  //   const result = await orderCollection
+  //     .find({ userEmail })
+  //     .sort({ orderedAt: -1 })
+  //     .toArray();
+
+  //   res.status(200).json(result);
+  // });
 
   // Get all orders (admin)
   app.get("/orders",  async (_req: Request, res: Response) => {
