@@ -179,7 +179,7 @@ async function run() {
   });
 
   // Get all orders (admin)
-  app.get("/orders", verifyToken, async (_req: Request, res: Response) => {
+  app.get("/orders",  async (_req: Request, res: Response) => {
     const orders = await orderCollection
       .find({})
       .sort({ orderedAt: -1 })
@@ -188,7 +188,7 @@ async function run() {
     res.send(orders);
   });
 
-  app.get("/api/admin/orders", verifyToken, async (_req: Request, res: Response) => {
+  app.get("/api/admin/orders",  async (_req: Request, res: Response) => {
     const orders = await orderCollection
       .find({})
       .sort({ orderedAt: -1 })
@@ -198,18 +198,18 @@ async function run() {
   });
 
   // Orders count
-  app.get("/orders/count", verifyToken, async (_req: Request, res: Response) => {
+  app.get("/orders/count",  async (_req: Request, res: Response) => {
     const totalOrders = await orderCollection.countDocuments();
     res.send({ totalOrders });
   });
 
-  app.get("/api/orders-count", verifyToken, async (_req: Request, res: Response) => {
+  app.get("/api/orders-count",  async (_req: Request, res: Response) => {
     const totalOrders = await orderCollection.countDocuments();
     res.send({ totalOrders });
   });
 
   // Update order status
-  app.patch("/orders/:id", verifyToken, async (req: Request, res: Response) => {
+  app.patch("/orders/:id",  async (req: Request, res: Response) => {
     const id = req.params.id as string;
     const { status } = req.body;
 
@@ -221,7 +221,7 @@ async function run() {
     res.send(result);
   });
 
-  app.patch("/api/orders/:id", verifyToken, async (req: Request, res: Response) => {
+  app.patch("/api/orders/:id", async (req: Request, res: Response) => {
     const id = req.params.id as string;
     const { status } = req.body;
 
@@ -234,13 +234,13 @@ async function run() {
   });
 
   // Delete order
-  app.delete("/orders/:id", verifyToken, async (req: Request, res: Response) => {
+  app.delete("/orders/:id",  async (req: Request, res: Response) => {
     const id = req.params.id as string;
     const result = await orderCollection.deleteOne({ _id: new ObjectId(id) });
     res.send(result);
   });
 
-  app.delete("/api/orders/:id", verifyToken, async (req: Request, res: Response) => {
+  app.delete("/api/orders/:id",  async (req: Request, res: Response) => {
     const id = req.params.id as string;
     const result = await orderCollection.deleteOne({ _id: new ObjectId(id) });
     res.send(result);
