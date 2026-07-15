@@ -162,7 +162,7 @@ async function run() {
   });
 
   // Get user orders
-  app.get("/api/orders", verifyToken, async (req: Request, res: Response) => {
+  app.get("/api/orders", async (req: Request, res: Response) => {
     const userEmail = req.query.email as string;
 
     if (!userEmail) {
