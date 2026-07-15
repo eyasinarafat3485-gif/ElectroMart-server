@@ -39,112 +39,44 @@ const client = new MongoClient(uri, {
   },
 });
 
+
 // const JWKS = createRemoteJWKSet(
-//   new URL(`${process.env.CLIENT_URL}/api/auth/jwks`)
+//   new URL("https://electro-mart-sigma.vercel.app/.well-known/jwks.json"),
+//   { cooldownDuration: 30000, timeoutDuration: 10000 } // avoid silent hangs
 // );
 
-// // ====== MIDDLEWARE
 // export const verifyToken = async (
 //   req: Request,
 //   res: Response,
 //   next: NextFunction
 // ): Promise<void> => {
 //   const authHeader = req.headers.authorization;
-
 //   if (!authHeader) {
-//     console.log("❌ Authorization header missing");
 //     res.status(401).json({ message: "Unauthorized: Header missing" });
 //     return;
 //   }
 
 //   const token = authHeader.split(" ")[1];
-
 //   if (!token || token === "undefined" || token === "null") {
-//     console.log("❌ Token is invalid or null string:", token);
 //     res.status(401).json({ message: "Unauthorized: Token missing" });
 //     return;
 //   }
 
 //   try {
-//     const { payload } = await jwtVerify(token, JWKS);
+//     const { payload } = await jwtVerify(token, JWKS, {
+//       issuer: "https://electro-mart-sigma.vercel.app",
+//       audience: "https://electro-mart-sigma.vercel.app",
+//     });
 //     (req as any).user = payload;
 //     next();
 //   } catch (error: any) {
-//     // এই লগটি আপনাকে লাইভ সার্ভারের (Render/Vercel) logs ট্যাবে আসল কারণ দেখাবে
-//     console.error("❌ JWT Verification Failed error details:", error.message || error);
-    
-//     res.status(403).json({ 
-//       message: "Forbidden: Token validation failed", 
-//       details: error.message 
+//     console.error("❌ JWT Verify Error:", error?.code, error?.message);
+//     res.status(403).json({
+//       message: "Forbidden: Invalid token",
+//       reason: error?.code || error?.message,
 //     });
 //   }
 // };
-
-
-
-// import { createRemoteJWKSet, jwtVerify } from "jose-cjs";
-// import { Request, Response, NextFunction } from "express";
-
-const clientUrl = process.env.CLIENT_URL ? process.env.CLIENT_URL.replace(/\/$/, "") : "";
-
-// import { Request, Response, NextFunction } from "express";
-// import { createRemoteJWKSet, jwtVerify } from "jose";
-
-const JWKS = createRemoteJWKSet(
-  new URL("https://electro-mart-sigma.vercel.app/.well-known/jwks.json"),
-  { cooldownDuration: 30000, timeoutDuration: 10000 } // avoid silent hangs
-);
-
-export const verifyToken = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    res.status(401).json({ message: "Unauthorized: Header missing" });
-    return;
-  }
-
-  const token = authHeader.split(" ")[1];
-  if (!token || token === "undefined" || token === "null") {
-    res.status(401).json({ message: "Unauthorized: Token missing" });
-    return;
-  }
-
-  try {
-    const { payload } = await jwtVerify(token, JWKS, {
-      issuer: "https://electro-mart-sigma.vercel.app",
-      audience: "https://electro-mart-sigma.vercel.app",
-    });
-    (req as any).user = payload;
-    next();
-  } catch (error: any) {
-    console.error("❌ JWT Verify Error:", error?.code, error?.message);
-    res.status(403).json({
-      message: "Forbidden: Invalid token",
-      reason: error?.code || error?.message,
-    });
-  }
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 async function run() {
@@ -229,40 +161,22 @@ async function run() {
 
 
 
-  // Get user orders (JWT Protected - Simple Version)
-app.get("/api/orders", verifyToken, async (req: Request, res: Response): Promise<void> => {
-  const userEmail = req.query.email as string;
+  // Get user orders
+  app.get("/api/orders", async (req: Request, res: Response) => {
+    const userEmail = req.query.email as string;
 
-  if (!userEmail) {
-    res.status(400).json({ message: "User email is required" });
-    return;
-  }
+    if (!userEmail) {
+      res.status(400).json({ message: "User email is required" });
+      return;
+    }
 
-  // সরাসরি ডাটাবেজ থেকে ডেটা কুয়েরি
-  const result = await orderCollection
-    .find({ userEmail })
-    .sort({ orderedAt: -1 })
-    .toArray();
+    const result = await orderCollection
+      .find({ userEmail })
+      .sort({ orderedAt: -1 })
+      .toArray();
 
-  res.status(200).json(result);
-});
-
-  // // Get user orders
-  // app.get("/api/orders", async (req: Request, res: Response) => {
-  //   const userEmail = req.query.email as string;
-
-  //   if (!userEmail) {
-  //     res.status(400).json({ message: "User email is required" });
-  //     return;
-  //   }
-
-  //   const result = await orderCollection
-  //     .find({ userEmail })
-  //     .sort({ orderedAt: -1 })
-  //     .toArray();
-
-  //   res.status(200).json(result);
-  // });
+    res.status(200).json(result);
+  });
 
   // Get all orders (admin)
   app.get("/orders",  async (_req: Request, res: Response) => {
