@@ -142,21 +142,63 @@ async function run() {
     res.send(result);
   });
 
-  // Place order
+  // Place order & save/sync customer info in user collection
   app.post("/api/orders", async (req: Request, res: Response) => {
-    const orderData = req.body;
-    const orderWithStatus = {
-      ...orderData,
-      status: orderData.status || "pending",
-      orderedAt: orderData.orderedAt || new Date().toISOString(),
-    };
+    try {
+      const orderData = req.body;
+      const orderWithStatus = {
+        ...orderData,
+        status: orderData.status || "pending",
+        orderedAt: orderData.orderedAt || new Date().toISOString(),
+      };
 
-    const result = await orderCollection.insertOne(orderWithStatus);
-    res.status(201).json({
-      success: true,
-      message: "Order saved successfully",
-      insertedId: result.insertedId,
-    });
+      // 1. Save order to orderCollection
+      const result = await orderCollection.insertOne(orderWithStatus);
+
+      // 2. Save customer info in user collection with role 'user'
+      const customerEmail = orderData.userEmail || orderData.email;
+      const customerName = orderData.userName || orderData.name || "Customer";
+      const customerPhone = orderData.userPhone || orderData.phone || "";
+      const customerAddress = orderData.deliveryAddress || orderData.address || "";
+      const customerDistrict = orderData.district || "";
+
+      if (customerEmail) {
+        await userCollection.updateOne(
+          { email: customerEmail },
+          {
+            $set: {
+              name: customerName,
+              email: customerEmail,
+              phone: customerPhone,
+              address: customerAddress,
+              district: customerDistrict,
+              lastOrderedAt: new Date().toISOString(),
+            },
+            $setOnInsert: {
+              role: "user",
+              createdAt: new Date().toISOString(),
+            },
+            $inc: {
+              totalOrders: 1,
+            },
+          },
+          { upsert: true }
+        );
+      }
+
+      res.status(201).json({
+        success: true,
+        message: "Order and customer info saved successfully",
+        insertedId: result.insertedId,
+      });
+    } catch (error: any) {
+      console.error("❌ Order save error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to process order",
+        error: error?.message,
+      });
+    }
   });
 
 
